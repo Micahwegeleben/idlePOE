@@ -6,7 +6,7 @@ import {
   STASH_COLUMNS,
   STASH_ROWS,
 } from "../data/constants.js";
-import { ITEM_TYPES, rollLoot } from "./loot.js";
+import { EQUIPMENT_SLOTS, rollLoot } from "./loot.js";
 
 const MAX_GUILD_SIZE = 5;
 const STASH_SIZE = STASH_COLUMNS * STASH_ROWS;
@@ -27,10 +27,77 @@ const createEmptyStashGrid = () => Array.from({ length: STASH_SIZE }, () => null
 
 const createEmptyEquipment = () => {
   const equipment = {};
-  ITEM_TYPES.forEach((item) => {
-    equipment[item.id] = null;
+  EQUIPMENT_SLOTS.forEach((slot) => {
+    equipment[slot.id] = null;
   });
   return equipment;
+};
+
+const itemAllowsSlot = (item, slotId) =>
+  Array.isArray(item?.allowedSlots) && item.allowedSlots.includes(slotId);
+
+const isTwoHanded = (item) => (item?.hands ?? 0) === 2;
+
+const canEquipItemInSlot = (hero, item, slotId) => {
+  if (!hero || !item) return false;
+  if (!itemAllowsSlot(item, slotId)) return false;
+  const equipment = hero.equipment ?? {};
+  if (slotId === "mainHand") {
+    if (equipment.mainHand) return false;
+    if (isTwoHanded(item) && equipment.offHand) return false;
+    return true;
+  }
+  if (slotId === "offHand") {
+    if (equipment.offHand) return false;
+    if (equipment.mainHand && isTwoHanded(equipment.mainHand)) return false;
+    return true;
+  }
+  if (slotId === "quiver") {
+    if (equipment.quiver) return false;
+    if (!equipment.mainHand || !equipment.mainHand.allowsQuiver) return false;
+    return true;
+  }
+  return !equipment[slotId];
+};
+
+const equipItemOnHero = (hero, item, slotId) => {
+  if (!canEquipItemInSlot(hero, item, slotId)) return null;
+  const equipment = { ...hero.equipment, [slotId]: item };
+  let quiverToReturn = null;
+  if (slotId === "mainHand") {
+    if (isTwoHanded(item)) {
+      equipment.offHand = null;
+    }
+    if (hero.equipment.quiver && !item.allowsQuiver) {
+      quiverToReturn = hero.equipment.quiver;
+      equipment.quiver = null;
+    }
+  }
+  return { equipment, quiverToReturn };
+};
+
+const removeItemFromHero = (hero, slotId) => {
+  const existing = hero.equipment[slotId];
+  if (!existing) return null;
+  const equipment = { ...hero.equipment, [slotId]: null };
+  let quiverToReturn = null;
+  if (slotId === "mainHand" && hero.equipment.quiver) {
+    quiverToReturn = hero.equipment.quiver;
+    equipment.quiver = null;
+  }
+  return { equipment, item: existing, quiverToReturn };
+};
+
+const takeItemFromTab = (tab, index) => {
+  const parsedIndex = Number.parseInt(index, 10);
+  if (Number.isNaN(parsedIndex) || parsedIndex < 0 || parsedIndex >= tab.grid.length) {
+    return null;
+  }
+  const item = tab.grid[parsedIndex];
+  if (!item) return null;
+  const newGrid = tab.grid.slice();
+  newGrid[parsedIndex] = null;
+  return { item, newGrid, index: parsedIndex };
 };
 
 const deriveHeroStats = (hero) => {
@@ -83,6 +150,12 @@ const initialState = {
     activeTabId: DEFAULT_STASH_TABS[0].id,
   },
   currency: DEFAULT_CURRENCY.map((currency) => ({ ...currency })),
+  crafting: {
+    benchItem: null,
+    benchSource: null,
+    selectedMaterialId: null,
+    lastCraftSummary: null,
+  },
   maps: initializeMaps(),
 };
 
@@ -114,6 +187,71 @@ const updateHeroStats = (hero) => ({
 const state = clone(initialState);
 
 const heroNameCounts = new Map();
+
+const getActiveHero = () => state.guild.find((h) => h.id === state.activeHeroId);
+
+const getHeroById = (heroId) => state.guild.find((h) => h.id === heroId);
+
+const findTabById = (tabId) => state.stash.tabs.find((entry) => entry.id === tabId);
+
+const insertItemIntoGrid = (grid, item, preferredIndex) => {
+  const newGrid = grid.slice();
+  if (
+    preferredIndex != null &&
+    preferredIndex >= 0 &&
+    preferredIndex < newGrid.length &&
+    newGrid[preferredIndex] === null
+  ) {
+    newGrid[preferredIndex] = item;
+    return { grid: newGrid, index: preferredIndex };
+  }
+  const emptyIndex = newGrid.findIndex((cell) => cell === null);
+  if (emptyIndex === -1) {
+    return null;
+  }
+  newGrid[emptyIndex] = item;
+  return { grid: newGrid, index: emptyIndex };
+};
+
+const placeItemInStash = (item, { preferredTabId, preferredIndex } = {}) => {
+  if (!item) return false;
+  const preferredTab = preferredTabId ? findTabById(preferredTabId) : null;
+  const orderedTabs = [];
+  const seen = new Set();
+  if (preferredTab) {
+    orderedTabs.push(preferredTab);
+    seen.add(preferredTab.id);
+  }
+  state.stash.tabs.forEach((tab) => {
+    if (!seen.has(tab.id)) {
+      orderedTabs.push(tab);
+      seen.add(tab.id);
+    }
+  });
+
+  for (const tab of orderedTabs) {
+    const attempt = insertItemIntoGrid(tab.grid, item, tab === preferredTab ? preferredIndex ?? null : null);
+    if (attempt) {
+      state.stash.tabs = state.stash.tabs.map((entry) =>
+        entry.id === tab.id ? { ...entry, grid: attempt.grid } : entry,
+      );
+      return true;
+    }
+  }
+  return false;
+};
+
+const commitHeroEquipment = (hero, equipment) => {
+  const updatedHero = updateHeroStats({ ...hero, equipment });
+  state.guild = state.guild.map((h) => (h.id === hero.id ? updatedHero : h));
+  return updatedHero;
+};
+
+const countEmptyStashSlots = () =>
+  state.stash.tabs.reduce(
+    (total, tab) => total + tab.grid.filter((cell) => cell === null).length,
+    0,
+  );
 
 const assignHeroName = (classId) => {
   const classDef = HERO_CLASSES.find((cls) => cls.id === classId);
@@ -171,55 +309,215 @@ export const actions = {
     notify();
   },
   equipItemFromStash(tabId, fromIndex, slotId) {
-    const hero = state.guild.find((h) => h.id === state.activeHeroId);
+    const hero = getActiveHero();
     if (!hero) {
       alert("Select a hero before equipping items.");
       return;
     }
-    const tab = state.stash.tabs.find((entry) => entry.id === tabId);
+    const tab = findTabById(tabId);
     if (!tab) return;
-    const index = Number.parseInt(fromIndex, 10);
-    if (Number.isNaN(index) || index < 0 || index >= tab.grid.length) return;
-    const item = tab.grid[index];
+    const parsedIndex = Number.parseInt(fromIndex, 10);
+    if (Number.isNaN(parsedIndex) || parsedIndex < 0 || parsedIndex >= tab.grid.length) return;
+    const item = tab.grid[parsedIndex];
     if (!item) return;
-    if (item.type !== slotId) {
-      alert("This item cannot be equipped in that slot.");
+    const equipResult = equipItemOnHero(hero, item, slotId);
+    if (!equipResult) {
+      alert("This item cannot be equipped in that slot right now.");
       return;
     }
-    if (hero.equipment[slotId]) {
-      alert("That equipment slot is already occupied. Unequip the current item first.");
-      return;
-    }
-    const newGrid = tab.grid.slice();
-    newGrid[index] = null;
-    const newEquipment = { ...hero.equipment, [slotId]: item };
+    const removal = takeItemFromTab(tab, parsedIndex);
+    if (!removal) return;
     state.stash.tabs = state.stash.tabs.map((entry) =>
-      entry.id === tabId ? { ...entry, grid: newGrid } : entry,
+      entry.id === tab.id ? { ...entry, grid: removal.newGrid } : entry,
     );
-    state.guild = state.guild.map((h) =>
-      h.id === hero.id ? { ...h, equipment: newEquipment } : h,
-    );
+    const updatedHero = commitHeroEquipment(hero, equipResult.equipment);
+    if (equipResult.quiverToReturn) {
+      const placed = placeItemInStash(equipResult.quiverToReturn, {
+        preferredTabId: tab.id,
+        preferredIndex: removal.index,
+      });
+      if (!placed) {
+        alert("Stash is full. Unable to store the unequipped quiver.");
+      }
+    }
+    if (updatedHero.id === state.activeHeroId) {
+      state.activeHeroId = updatedHero.id;
+    }
     notify();
   },
-  moveEquipmentItemToStash(slotId, tabId, targetIndex) {
-    const hero = state.guild.find((h) => h.id === state.activeHeroId);
+  unequipItemToStash(slotId) {
+    const hero = getActiveHero();
     if (!hero) return;
-    const item = hero.equipment[slotId];
-    if (!item) return;
-    const tab = state.stash.tabs.find((entry) => entry.id === tabId);
+    let requiredSlots = 1;
+    if (slotId === "mainHand" && hero.equipment.quiver) {
+      requiredSlots += 1;
+    }
+    if (countEmptyStashSlots() < requiredSlots) {
+      alert("Stash is full. Free up space before unequipping.");
+      return;
+    }
+    const removal = removeItemFromHero(hero, slotId);
+    if (!removal) return;
+    const targetTabId = state.stash.activeTabId;
+    const placed = placeItemInStash(removal.item, { preferredTabId: targetTabId });
+    if (!placed) {
+      alert("Stash is full. Unable to unequip this item.");
+      return;
+    }
+    const updatedHero = commitHeroEquipment(hero, removal.equipment);
+    if (removal.quiverToReturn) {
+      const placedQuiver = placeItemInStash(removal.quiverToReturn, { preferredTabId: targetTabId });
+      if (!placedQuiver) {
+        alert("Stash is full. Unable to store the quiver.");
+      }
+    }
+    if (updatedHero.id === state.activeHeroId) {
+      state.activeHeroId = updatedHero.id;
+    }
+    notify();
+  },
+  placeItemInBenchFromStash(tabId, fromIndex) {
+    if (state.crafting.benchItem) {
+      alert("The crafting bench is already holding an item.");
+      return;
+    }
+    const tab = findTabById(tabId);
     if (!tab) return;
-    const index = Number.parseInt(targetIndex, 10);
-    if (Number.isNaN(index) || index < 0 || index >= tab.grid.length) return;
-    if (tab.grid[index]) return;
-    const newGrid = tab.grid.slice();
-    newGrid[index] = item;
-    const newEquipment = { ...hero.equipment, [slotId]: null };
+    const removal = takeItemFromTab(tab, fromIndex);
+    if (!removal) return;
     state.stash.tabs = state.stash.tabs.map((entry) =>
-      entry.id === tabId ? { ...entry, grid: newGrid } : entry,
+      entry.id === tab.id ? { ...entry, grid: removal.newGrid } : entry,
     );
-    state.guild = state.guild.map((h) =>
-      h.id === hero.id ? { ...h, equipment: newEquipment } : h,
+    state.crafting = {
+      ...state.crafting,
+      benchItem: removal.item,
+      benchSource: { type: "stash", tabId: tab.id, index: removal.index },
+      lastCraftSummary: null,
+    };
+    notify();
+  },
+  placeItemInBenchFromEquipment(slotId) {
+    if (state.crafting.benchItem) {
+      alert("The crafting bench is already holding an item.");
+      return;
+    }
+    const hero = getActiveHero();
+    if (!hero) {
+      alert("Select a hero before moving equipment to the crafting bench.");
+      return;
+    }
+    if (slotId === "mainHand" && hero.equipment.quiver && countEmptyStashSlots() < 1) {
+      alert("Stash is full. Free up a slot before moving this weapon to the bench.");
+      return;
+    }
+    const removal = removeItemFromHero(hero, slotId);
+    if (!removal) return;
+    const updatedHero = commitHeroEquipment(hero, removal.equipment);
+    if (removal.quiverToReturn) {
+      const placedQuiver = placeItemInStash(removal.quiverToReturn, {
+        preferredTabId: state.stash.activeTabId,
+      });
+      if (!placedQuiver) {
+        alert("Stash is full. Unable to store the quiver.");
+      }
+    }
+    state.crafting = {
+      ...state.crafting,
+      benchItem: removal.item,
+      benchSource: { type: "equipment", slotId, heroId: updatedHero.id },
+      lastCraftSummary: null,
+    };
+    notify();
+  },
+  returnBenchItem() {
+    const { benchItem, benchSource } = state.crafting;
+    if (!benchItem) return;
+    let returned = false;
+    if (benchSource?.type === "stash") {
+      returned = placeItemInStash(benchItem, {
+        preferredTabId: benchSource.tabId,
+        preferredIndex: benchSource.index,
+      });
+    } else if (benchSource?.type === "equipment") {
+      const hero = getHeroById(benchSource.heroId);
+      if (hero) {
+        const equipResult = equipItemOnHero(hero, benchItem, benchSource.slotId);
+        if (equipResult) {
+          const updatedHero = commitHeroEquipment(hero, equipResult.equipment);
+          if (equipResult.quiverToReturn) {
+            const placed = placeItemInStash(equipResult.quiverToReturn, {
+              preferredTabId: state.stash.activeTabId,
+            });
+            if (!placed) {
+              alert("Stash is full. Unable to store the quiver.");
+            }
+          }
+          if (updatedHero.id === state.activeHeroId) {
+            state.activeHeroId = updatedHero.id;
+          }
+          returned = true;
+        }
+      }
+      if (!returned) {
+        returned = placeItemInStash(benchItem, { preferredTabId: state.stash.activeTabId });
+      }
+    } else {
+      returned = placeItemInStash(benchItem, { preferredTabId: state.stash.activeTabId });
+    }
+    if (!returned) {
+      alert("Stash is full. Unable to remove the item from the crafting bench.");
+      return;
+    }
+    state.crafting = {
+      ...state.crafting,
+      benchItem: null,
+      benchSource: null,
+    };
+    notify();
+  },
+  setSelectedCraftingMaterial(materialId) {
+    if (!materialId) {
+      state.crafting = { ...state.crafting, selectedMaterialId: null };
+      notify();
+      return;
+    }
+    const material = state.currency.find((entry) => entry.id === materialId);
+    if (!material) {
+      state.crafting = { ...state.crafting, selectedMaterialId: null };
+      notify();
+      return;
+    }
+    state.crafting = { ...state.crafting, selectedMaterialId: materialId };
+    notify();
+  },
+  craftBenchItem() {
+    const { benchItem, selectedMaterialId } = state.crafting;
+    if (!benchItem) {
+      alert("Place an item in the crafting bench before crafting.");
+      return;
+    }
+    if (!selectedMaterialId) {
+      alert("Select a crafting material first.");
+      return;
+    }
+    const material = state.currency.find((entry) => entry.id === selectedMaterialId);
+    if (!material || material.amount <= 0) {
+      alert("You do not have any of that crafting material available.");
+      return;
+    }
+    state.currency = state.currency.map((entry) =>
+      entry.id === material.id ? { ...entry, amount: entry.amount - 1 } : entry,
     );
+    state.crafting = {
+      ...state.crafting,
+      lastCraftSummary: {
+        materialId: material.id,
+        materialName: material.name,
+        itemId: benchItem.id,
+        itemName: benchItem.name,
+        timestamp: Date.now(),
+      },
+    };
     notify();
   },
   startMap(mapId, heroId) {
