@@ -11,6 +11,9 @@ import { ITEM_TYPES, rollLoot } from "./loot.js";
 const MAX_GUILD_SIZE = 5;
 const STASH_SIZE = STASH_COLUMNS * STASH_ROWS;
 
+// Temporary debug helper to shorten how long map runs take.
+const DEBUG_MAP_DURATION_SECONDS = 5;
+
 const clone = (value) => {
   if (typeof structuredClone === "function") {
     return structuredClone(value);
@@ -65,7 +68,7 @@ const initializeMaps = () =>
     status: "idle",
     assignedHeroId: null,
     startedAt: null,
-    duration: map.baseDuration,
+    duration: DEBUG_MAP_DURATION_SECONDS,
     progress: 0,
   }));
 
@@ -233,6 +236,7 @@ export const actions = {
         status: "running",
         assignedHeroId: heroId,
         startedAt: Date.now(),
+        duration: DEBUG_MAP_DURATION_SECONDS,
         progress: 0,
       };
     });
@@ -296,6 +300,7 @@ export const actions = {
             status: "idle",
             assignedHeroId: null,
             startedAt: null,
+            duration: DEBUG_MAP_DURATION_SECONDS,
             progress: 0,
           }
         : entry,
@@ -310,6 +315,7 @@ export const actions = {
             status: "idle",
             assignedHeroId: null,
             startedAt: null,
+            duration: DEBUG_MAP_DURATION_SECONDS,
             progress: 0,
           }
         : map,
