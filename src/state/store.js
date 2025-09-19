@@ -1,8 +1,15 @@
-import { HERO_CLASSES, DEFAULT_STASH_TABS, DEFAULT_CURRENCY, DEFAULT_MAPS } from "../data/constants.js";
+import {
+  HERO_CLASSES,
+  DEFAULT_STASH_TABS,
+  DEFAULT_CURRENCY,
+  DEFAULT_MAPS,
+  STASH_COLUMNS,
+  STASH_ROWS,
+} from "../data/constants.js";
+import { ITEM_TYPES, rollLoot } from "./loot.js";
 
 const MAX_GUILD_SIZE = 5;
-const INVENTORY_COLUMNS = 12;
-const INVENTORY_ROWS = 5;
+const STASH_SIZE = STASH_COLUMNS * STASH_ROWS;
 
 const clone = (value) => {
   if (typeof structuredClone === "function") {
@@ -13,8 +20,15 @@ const clone = (value) => {
 
 const generateId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 
-const createEmptyInventory = () =>
-  Array.from({ length: INVENTORY_COLUMNS * INVENTORY_ROWS }, () => null);
+const createEmptyStashGrid = () => Array.from({ length: STASH_SIZE }, () => null);
+
+const createEmptyEquipment = () => {
+  const equipment = {};
+  ITEM_TYPES.forEach((item) => {
+    equipment[item.id] = null;
+  });
+  return equipment;
+};
 
 const deriveHeroStats = (hero) => {
   const base = HERO_CLASSES.find((cls) => cls.id === hero.classId)?.baseStats ?? {};
@@ -40,19 +54,7 @@ const createHero = (classId, name) => {
     level: 1,
     experience: 0,
     experienceToNext: 100,
-    inventory: createEmptyInventory(),
-    equipment: {
-      weapon: null,
-      offhand: null,
-      helmet: null,
-      bodyArmour: null,
-      gloves: null,
-      boots: null,
-      belt: null,
-      amulet: null,
-      ring1: null,
-      ring2: null,
-    },
+    equipment: createEmptyEquipment(),
     stats: {},
   };
 };
@@ -71,7 +73,10 @@ const initialState = {
   guild: [],
   activeHeroId: null,
   stash: {
-    tabs: DEFAULT_STASH_TABS.map((tab) => ({ ...tab })),
+    tabs: DEFAULT_STASH_TABS.map((tab) => ({
+      ...tab,
+      grid: createEmptyStashGrid(),
+    })),
     activeTabId: DEFAULT_STASH_TABS[0].id,
   },
   currency: DEFAULT_CURRENCY.map((currency) => ({ ...currency })),
@@ -142,6 +147,78 @@ export const actions = {
     state.stash.activeTabId = tabId;
     notify();
   },
+  moveStashItem(tabId, fromIndex, toIndex) {
+    const source = Number.parseInt(fromIndex, 10);
+    const target = Number.parseInt(toIndex, 10);
+    if (Number.isNaN(source) || Number.isNaN(target)) return;
+    if (source === target) return;
+    const tab = state.stash.tabs.find((entry) => entry.id === tabId);
+    if (!tab) return;
+    if (source < 0 || source >= tab.grid.length) return;
+    if (target < 0 || target >= tab.grid.length) return;
+    const item = tab.grid[source];
+    if (!item) return;
+    if (tab.grid[target]) return;
+    const newGrid = tab.grid.slice();
+    newGrid[source] = null;
+    newGrid[target] = item;
+    state.stash.tabs = state.stash.tabs.map((entry) =>
+      entry.id === tabId ? { ...entry, grid: newGrid } : entry,
+    );
+    notify();
+  },
+  equipItemFromStash(tabId, fromIndex, slotId) {
+    const hero = state.guild.find((h) => h.id === state.activeHeroId);
+    if (!hero) {
+      alert("Select a hero before equipping items.");
+      return;
+    }
+    const tab = state.stash.tabs.find((entry) => entry.id === tabId);
+    if (!tab) return;
+    const index = Number.parseInt(fromIndex, 10);
+    if (Number.isNaN(index) || index < 0 || index >= tab.grid.length) return;
+    const item = tab.grid[index];
+    if (!item) return;
+    if (item.type !== slotId) {
+      alert("This item cannot be equipped in that slot.");
+      return;
+    }
+    if (hero.equipment[slotId]) {
+      alert("That equipment slot is already occupied. Unequip the current item first.");
+      return;
+    }
+    const newGrid = tab.grid.slice();
+    newGrid[index] = null;
+    const newEquipment = { ...hero.equipment, [slotId]: item };
+    state.stash.tabs = state.stash.tabs.map((entry) =>
+      entry.id === tabId ? { ...entry, grid: newGrid } : entry,
+    );
+    state.guild = state.guild.map((h) =>
+      h.id === hero.id ? { ...h, equipment: newEquipment } : h,
+    );
+    notify();
+  },
+  moveEquipmentItemToStash(slotId, tabId, targetIndex) {
+    const hero = state.guild.find((h) => h.id === state.activeHeroId);
+    if (!hero) return;
+    const item = hero.equipment[slotId];
+    if (!item) return;
+    const tab = state.stash.tabs.find((entry) => entry.id === tabId);
+    if (!tab) return;
+    const index = Number.parseInt(targetIndex, 10);
+    if (Number.isNaN(index) || index < 0 || index >= tab.grid.length) return;
+    if (tab.grid[index]) return;
+    const newGrid = tab.grid.slice();
+    newGrid[index] = item;
+    const newEquipment = { ...hero.equipment, [slotId]: null };
+    state.stash.tabs = state.stash.tabs.map((entry) =>
+      entry.id === tabId ? { ...entry, grid: newGrid } : entry,
+    );
+    state.guild = state.guild.map((h) =>
+      h.id === hero.id ? { ...h, equipment: newEquipment } : h,
+    );
+    notify();
+  },
   startMap(mapId, heroId) {
     const hero = state.guild.find((h) => h.id === heroId);
     if (!hero) {
@@ -188,16 +265,29 @@ export const actions = {
       return currency;
     });
 
-    // Drop placeholder loot into the active stash tab.
-    const lootLabel = `${map.name} Spoils (${new Date().toLocaleTimeString()})`;
-    state.stash.tabs = state.stash.tabs.map((tab) =>
-      tab.id === state.stash.activeTabId
-        ? {
-            ...tab,
-            items: [...tab.items, { id: generateId(), name: lootLabel }],
-          }
-        : tab,
-    );
+    const activeTabId = state.stash.activeTabId;
+    const lootDrops = rollLoot(map.tier);
+    let overflow = false;
+
+    state.stash.tabs = state.stash.tabs.map((tab) => {
+      if (tab.id !== activeTabId) {
+        return tab;
+      }
+      const newGrid = tab.grid.slice();
+      lootDrops.forEach((item) => {
+        const slotIndex = newGrid.findIndex((cell) => cell === null);
+        if (slotIndex === -1) {
+          overflow = true;
+          return;
+        }
+        newGrid[slotIndex] = item;
+      });
+      return { ...tab, grid: newGrid };
+    });
+
+    if (overflow) {
+      alert("The active stash tab is full. Some items could not be stored.");
+    }
 
     state.maps = state.maps.map((entry) =>
       entry.id === mapId

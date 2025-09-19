@@ -56,7 +56,7 @@ button:disabled {
   grid-template-rows: auto auto auto;
   grid-template-areas:
     "guild stash stats"
-    "inventory maps stats"
+    "equipment maps stats"
     ". crafting stats";
 }
 
@@ -68,8 +68,8 @@ button:disabled {
   grid-area: stash;
 }
 
-.panel[data-area="inventory"] {
-  grid-area: inventory;
+.panel[data-area="equipment"] {
+  grid-area: equipment;
 }
 
 .panel[data-area="maps"] {
@@ -115,14 +115,11 @@ button:disabled {
 }
 
 .stash-items {
-  min-height: 160px;
+  min-height: 200px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stash-items .grid-list {
-  width: 100%;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
 }
 
 .stash-tab {
@@ -170,10 +167,10 @@ button:disabled {
   background: rgba(245, 212, 143, 0.85);
 }
 
-.inventory-grid {
+.stash-grid {
   display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  grid-auto-rows: 32px;
+  grid-template-columns: repeat(var(--stash-columns, 12), minmax(0, 1fr));
+  grid-auto-rows: 44px;
   gap: 4px;
   padding: 8px;
   background: rgba(14, 12, 10, 0.9);
@@ -181,19 +178,137 @@ button:disabled {
   border: 1px solid rgba(204, 172, 101, 0.2);
 }
 
-.inventory-slot {
+.stash-slot {
   border: 1px solid rgba(204, 172, 101, 0.2);
   border-radius: 4px;
-  background: rgba(46, 38, 32, 0.5);
+  background: rgba(46, 38, 32, 0.35);
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.inventory-slot.has-item::after {
-  content: "";
-  position: absolute;
-  inset: 3px;
-  background: rgba(245, 212, 143, 0.2);
+.stash-slot.filled {
+  border-color: rgba(204, 172, 101, 0.35);
+}
+
+.stash-slot.drag-over {
+  border-color: rgba(245, 212, 143, 0.85);
+  box-shadow: 0 0 12px rgba(245, 212, 143, 0.35);
+}
+
+.stash-item {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  text-align: center;
+  font-size: 0.75rem;
   border-radius: 3px;
+  background: rgba(245, 212, 143, 0.12);
+  border: 1px solid rgba(204, 172, 101, 0.35);
+  cursor: grab;
+  user-select: none;
+}
+
+.stash-item:active {
+  cursor: grabbing;
+}
+
+.stash-item.rarity-common {
+  color: #d4cbb6;
+}
+
+.stash-item.rarity-magic {
+  color: #7fb3ff;
+  border-color: rgba(127, 179, 255, 0.6);
+  background: rgba(30, 60, 110, 0.35);
+}
+
+.stash-item.rarity-rare {
+  color: #f7d776;
+  border-color: rgba(247, 215, 118, 0.7);
+  background: rgba(90, 70, 20, 0.45);
+}
+
+.empty-state.subtle {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  text-align: center;
+}
+
+.equipment-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.equipment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.equipment-slot {
+  border: 1px solid rgba(204, 172, 101, 0.25);
+  border-radius: 8px;
+  background: rgba(34, 28, 23, 0.75);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 120px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.equipment-slot.drag-over {
+  border-color: rgba(245, 212, 143, 0.85);
+  box-shadow: 0 0 12px rgba(245, 212, 143, 0.35);
+}
+
+.slot-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(245, 212, 143, 0.85);
+}
+
+.slot-hint {
+  font-size: 0.75rem;
+  opacity: 0.7;
+  text-align: center;
+  margin-top: auto;
+}
+
+.equipment-item {
+  border-radius: 6px;
+  padding: 6px;
+  background: rgba(245, 212, 143, 0.1);
+  border: 1px solid rgba(204, 172, 101, 0.35);
+  text-align: center;
+  font-size: 0.85rem;
+  cursor: grab;
+  user-select: none;
+}
+
+.equipment-item:active {
+  cursor: grabbing;
+}
+
+.equipment-item.rarity-magic {
+  color: #7fb3ff;
+  border-color: rgba(127, 179, 255, 0.6);
+  background: rgba(30, 60, 110, 0.35);
+}
+
+.equipment-item.rarity-rare {
+  color: #f7d776;
+  border-color: rgba(247, 215, 118, 0.7);
+  background: rgba(90, 70, 20, 0.45);
 }
 
 .currency-grid {
@@ -327,7 +442,8 @@ button:disabled {
     grid-template-columns: 320px 1fr;
     grid-template-areas:
       "guild stash"
-      "inventory maps"
+      "equipment maps"
+      "crafting maps"
       "stats stats";
   }
 }
