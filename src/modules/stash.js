@@ -1,8 +1,54 @@
 import { STASH_COLUMNS } from "../data/constants.js";
+import { EQUIPMENT_SLOTS } from "../state/loot.js";
 import { actions, subscribe } from "../state/store.js";
 import { createElement, clearChildren } from "../ui/dom.js";
-import { parseDragData } from "../ui/drag.js";
-import { buildItemTooltip } from "../ui/items.js";
+import { buildItemTooltip, openItemOptionsTooltip, closeItemTooltip } from "../ui/items.js";
+
+const SLOT_LABELS = EQUIPMENT_SLOTS.reduce((map, slot) => {
+  map[slot.id] = slot.label;
+  return map;
+}, {});
+
+const evaluateEquipSlot = (hero, item, slotId) => {
+  if (!hero || !item) {
+    return { allowed: false, hint: "Select a hero first." };
+  }
+  if (!Array.isArray(item.allowedSlots) || !item.allowedSlots.includes(slotId)) {
+    return { allowed: false, hint: "Incompatible slot." };
+  }
+  const equipment = hero.equipment ?? {};
+  if (slotId === "mainHand") {
+    if (equipment.mainHand) {
+      return { allowed: false, hint: "Main hand is occupied." };
+    }
+    if ((item.hands ?? 0) === 2 && equipment.offHand) {
+      return { allowed: false, hint: "Off-hand must be empty." };
+    }
+    return { allowed: true };
+  }
+  if (slotId === "offHand") {
+    if (equipment.offHand) {
+      return { allowed: false, hint: "Off-hand is occupied." };
+    }
+    if (equipment.mainHand && (equipment.mainHand.hands ?? 0) === 2) {
+      return { allowed: false, hint: "Main hand item uses both hands." };
+    }
+    return { allowed: true };
+  }
+  if (slotId === "quiver") {
+    if (equipment.quiver) {
+      return { allowed: false, hint: "Quiver slot is occupied." };
+    }
+    if (!equipment.mainHand || !equipment.mainHand.allowsQuiver) {
+      return { allowed: false, hint: "Requires a bow equipped." };
+    }
+    return { allowed: true };
+  }
+  if (equipment[slotId]) {
+    return { allowed: false, hint: "Slot is already occupied." };
+  }
+  return { allowed: true };
+};
 
 export class StashPanel {
   constructor() {
@@ -29,6 +75,7 @@ export class StashPanel {
 
   render(state) {
     clearChildren(this.tabsContainer);
+    closeItemTooltip();
     const { tabs, activeTabId } = state.stash;
 
     tabs.forEach((tab) => {
@@ -69,53 +116,57 @@ export class StashPanel {
         attrs: { "data-slot": index },
       });
 
-      slot.addEventListener("dragover", (event) => {
-        const payload = parseDragData(event);
-        const slotOccupied = Boolean(activeTab.grid[index]);
-        if (!payload || slotOccupied) return;
-        if (payload.type === "stash-item" && payload.tabId === activeTab.id && payload.index !== index) {
-          event.preventDefault();
-          slot.classList.add("drag-over");
-        } else if (payload.type === "equipment-item") {
-          event.preventDefault();
-          slot.classList.add("drag-over");
-        }
-      });
-
-      slot.addEventListener("dragleave", () => {
-        slot.classList.remove("drag-over");
-      });
-
-      slot.addEventListener("drop", (event) => {
-        const payload = parseDragData(event);
-        slot.classList.remove("drag-over");
-        if (!payload) return;
-        event.preventDefault();
-        if (payload.type === "stash-item" && payload.tabId === activeTab.id) {
-          actions.moveStashItem(activeTab.id, payload.index, index);
-        } else if (payload.type === "equipment-item") {
-          actions.moveEquipmentItemToStash(payload.slotId, activeTab.id, index);
-        }
-      });
-
       if (item) {
         const itemElement = createElement("div", {
           className: `stash-item rarity-${item.rarity ?? "common"}`,
           text: item.name,
-          attrs: { draggable: "true" },
         });
         itemElement.title = buildItemTooltip(item);
-        itemElement.addEventListener("dragstart", (event) => {
-          event.dataTransfer.effectAllowed = "move";
-          event.dataTransfer.setData(
-            "application/json",
-            JSON.stringify({
-              type: "stash-item",
-              tabId: activeTab.id,
-              index,
-              itemType: item.type,
-            }),
-          );
+        itemElement.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const hero = state.guild.find((h) => h.id === state.activeHeroId);
+          const benchOccupied = Boolean(state.crafting?.benchItem);
+          let equipOptions = [];
+          if (hero) {
+            equipOptions = (item.allowedSlots ?? []).map((slotId) => {
+              const evaluation = evaluateEquipSlot(hero, item, slotId);
+              return {
+                label: `Equip (${SLOT_LABELS[slotId] ?? slotId})`,
+                disabled: !evaluation.allowed,
+                hint: evaluation.allowed ? undefined : evaluation.hint,
+                onSelect: () => actions.equipItemFromStash(activeTab.id, index, slotId),
+              };
+            });
+            if (equipOptions.length === 0) {
+              equipOptions.push({
+                label: "Equip",
+                disabled: true,
+                hint: "This item cannot be equipped by the current hero.",
+              });
+            }
+          } else {
+            equipOptions = [
+              {
+                label: "Equip",
+                disabled: true,
+                hint: "Select a hero to equip items.",
+              },
+            ];
+          }
+
+          openItemOptionsTooltip({
+            anchor: itemElement,
+            item,
+            options: [
+              ...equipOptions,
+              {
+                label: "Place in crafting bench",
+                disabled: benchOccupied,
+                hint: benchOccupied ? "Bench already contains an item." : undefined,
+                onSelect: () => actions.placeItemInBenchFromStash(activeTab.id, index),
+              },
+            ],
+          });
         });
         slot.appendChild(itemElement);
       }
@@ -129,7 +180,7 @@ export class StashPanel {
       this.itemsContainer.appendChild(
         createElement("div", {
           className: "empty-state subtle",
-          text: "This stash tab is empty. Complete maps to discover loot, then drag and drop to organize it.",
+          text: "This stash tab is empty. Complete maps to discover loot, then click items to manage them.",
         }),
       );
     }

@@ -211,12 +211,14 @@ button:disabled {
   border-radius: 3px;
   background: rgba(245, 212, 143, 0.12);
   border: 1px solid rgba(204, 172, 101, 0.35);
-  cursor: grab;
+  cursor: pointer;
   user-select: none;
+  transition: transform 0.15s ease, border-color 0.15s ease;
 }
 
-.stash-item:active {
-  cursor: grabbing;
+.stash-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(245, 212, 143, 0.6);
 }
 
 .stash-item.rarity-common {
@@ -291,12 +293,14 @@ button:disabled {
   border: 1px solid rgba(204, 172, 101, 0.35);
   text-align: center;
   font-size: 0.85rem;
-  cursor: grab;
+  cursor: pointer;
   user-select: none;
+  transition: transform 0.15s ease, border-color 0.15s ease;
 }
 
-.equipment-item:active {
-  cursor: grabbing;
+.equipment-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(245, 212, 143, 0.6);
 }
 
 .equipment-item.rarity-magic {
@@ -322,6 +326,249 @@ button:disabled {
   border-radius: 8px;
   border: 1px solid rgba(204, 172, 101, 0.3);
   padding: 10px;
+}
+
+.item-tooltip {
+  position: absolute;
+  z-index: 2000;
+  background: rgba(18, 14, 11, 0.97);
+  border: 1px solid rgba(245, 212, 143, 0.4);
+  border-radius: 10px;
+  padding: 12px 14px;
+  min-width: 240px;
+  max-width: 280px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+  color: #f5ecd7;
+}
+
+.item-tooltip-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-bottom: 1px solid rgba(204, 172, 101, 0.2);
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+.item-tooltip-name {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.rarity-common {
+  color: #d4cbb6;
+}
+
+.rarity-magic {
+  color: #7fb3ff;
+}
+
+.rarity-rare {
+  color: #f7d776;
+}
+
+.item-tooltip-base {
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.item-tooltip-stats {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: #dacfba;
+}
+
+.item-tooltip-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item-tooltip-action-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.item-tooltip-action {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+  gap: 6px;
+  background: rgba(245, 212, 143, 0.18);
+  border: 1px solid rgba(245, 212, 143, 0.35);
+  color: #f5ecd7;
+}
+
+.item-tooltip-action:hover {
+  background: rgba(245, 212, 143, 0.28);
+}
+
+.item-tooltip-action:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.item-tooltip-hint {
+  font-size: 0.75rem;
+  color: rgba(245, 212, 143, 0.65);
+}
+
+.crafting-content {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.crafting-materials,
+.crafting-bench,
+.crafting-item-stats {
+  background: rgba(21, 17, 14, 0.6);
+  border: 1px solid rgba(204, 172, 101, 0.2);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.crafting-materials h3,
+.crafting-bench h3,
+.crafting-item-stats h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #f5d48f;
+  border-bottom: 1px solid rgba(204, 172, 101, 0.2);
+  padding-bottom: 6px;
+}
+
+.crafting-material-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.material-button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px 10px;
+  background: rgba(245, 212, 143, 0.1);
+  border: 1px solid rgba(204, 172, 101, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  color: inherit;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+}
+
+.material-button:hover {
+  background: rgba(245, 212, 143, 0.18);
+  transform: translateY(-1px);
+}
+
+.material-button.selected {
+  border-color: rgba(245, 212, 143, 0.7);
+  box-shadow: 0 0 12px rgba(245, 212, 143, 0.25);
+}
+
+.material-button.depleted {
+  opacity: 0.6;
+}
+
+.material-name {
+  font-weight: 600;
+}
+
+.material-amount {
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.crafting-bench-slots {
+  display: flex;
+  gap: 12px;
+}
+
+.bench-slot {
+  flex: 1;
+  min-height: 96px;
+  border: 1px dashed rgba(245, 212, 143, 0.35);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 12px;
+  background: rgba(34, 28, 23, 0.55);
+  text-align: center;
+}
+
+.bench-slot.filled {
+  border-style: solid;
+  border-color: rgba(245, 212, 143, 0.55);
+  background: rgba(245, 212, 143, 0.08);
+}
+
+.bench-item-name {
+  font-weight: 600;
+  text-align: center;
+}
+
+.bench-item-base {
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.bench-placeholder {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.bench-material-info {
+  font-size: 0.85rem;
+  color: rgba(245, 212, 143, 0.75);
+}
+
+.crafting-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.crafting-controls button {
+  flex: 1 1 120px;
+}
+
+.crafting-last-result {
+  font-size: 0.8rem;
+  color: rgba(245, 212, 143, 0.7);
+}
+
+.crafting-item-stats-content {
+  background: rgba(18, 14, 11, 0.6);
+  border: 1px solid rgba(204, 172, 101, 0.25);
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bench-stats-list {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: #dacfba;
 }
 
 .maps-list {

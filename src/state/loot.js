@@ -1,20 +1,37 @@
 const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 
-const ITEM_TYPES = [
+export const EQUIPMENT_SLOTS = [
   { id: "helmet", label: "Helmet" },
   { id: "chest", label: "Chest Armour" },
-  { id: "ring", label: "Ring" },
-  { id: "amulet", label: "Amulet" },
-  { id: "belt", label: "Belt" },
-  { id: "sword", label: "Sword" },
-  { id: "wand", label: "Wand" },
-  { id: "bow", label: "Bow" },
-  { id: "axe", label: "Axe" },
-  { id: "mace", label: "Mace" },
-  { id: "staff", label: "Staff" },
-  { id: "shield", label: "Shield" },
-  { id: "boots", label: "Boots" },
   { id: "gloves", label: "Gloves" },
+  { id: "boots", label: "Boots" },
+  { id: "belt", label: "Belt" },
+  { id: "amulet", label: "Amulet" },
+  { id: "ring", label: "Ring" },
+  { id: "mainHand", label: "Main Hand" },
+  { id: "offHand", label: "Off-Hand" },
+  { id: "quiver", label: "Quiver" },
+];
+
+const ITEM_BASES = [
+  { id: "helmet", label: "Helmet", slots: ["helmet"] },
+  { id: "chest", label: "Chest Armour", slots: ["chest"] },
+  { id: "gloves", label: "Gloves", slots: ["gloves"] },
+  { id: "boots", label: "Boots", slots: ["boots"] },
+  { id: "belt", label: "Belt", slots: ["belt"] },
+  { id: "amulet", label: "Amulet", slots: ["amulet"] },
+  { id: "ring", label: "Ring", slots: ["ring"] },
+  { id: "sword", label: "Sword", slots: ["mainHand", "offHand"], hands: 1 },
+  { id: "axe", label: "Axe", slots: ["mainHand", "offHand"], hands: 1 },
+  { id: "mace", label: "Mace", slots: ["mainHand", "offHand"], hands: 1 },
+  { id: "wand", label: "Wand", slots: ["mainHand", "offHand"], hands: 1 },
+  { id: "staff", label: "Warstaff", slots: ["mainHand"], hands: 2 },
+  { id: "bow", label: "Longbow", slots: ["mainHand"], hands: 2, allowsQuiver: true },
+  { id: "greatsword", label: "Greatsword", slots: ["mainHand"], hands: 2 },
+  { id: "poleaxe", label: "Poleaxe", slots: ["mainHand"], hands: 2 },
+  { id: "warhammer", label: "Warhammer", slots: ["mainHand"], hands: 2 },
+  { id: "shield", label: "Shield", slots: ["offHand"] },
+  { id: "quiver", label: "Quiver", slots: ["quiver"] },
 ];
 
 const PREFIX_TEMPLATES = [
@@ -135,7 +152,7 @@ const buildRareName = (baseLabel) => {
 const generateItemId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
 export const createRandomItem = (mapTier) => {
-  const base = ITEM_TYPES[randomInt(0, ITEM_TYPES.length - 1)];
+  const base = ITEM_BASES[randomInt(0, ITEM_BASES.length - 1)];
   const rarity = determineRarity(mapTier);
 
   let prefixCount = 0;
@@ -169,6 +186,9 @@ export const createRandomItem = (mapTier) => {
     id: generateItemId(),
     type: base.id,
     baseLabel: base.label,
+    allowedSlots: [...(base.slots ?? [])],
+    hands: base.hands ?? 0,
+    allowsQuiver: Boolean(base.allowsQuiver),
     rarity,
     name,
     stats,
@@ -184,4 +204,4 @@ export const rollLoot = (mapTier) => {
   return Array.from({ length: dropCount }, () => createRandomItem(mapTier));
 };
 
-export { ITEM_TYPES };
+export { ITEM_BASES };
