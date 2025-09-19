@@ -1,6 +1,6 @@
 import { CraftingPanel } from "./modules/crafting.js";
+import { EquipmentPanel } from "./modules/equipment.js";
 import { GuildPanel } from "./modules/guild.js";
-import { InventoryPanel } from "./modules/inventory.js";
 import { MapsPanel } from "./modules/maps.js";
 import { StashPanel } from "./modules/stash.js";
 import { StatsPanel } from "./modules/stats.js";
@@ -21,16 +21,16 @@ class AppShell {
 
     const guild = new GuildPanel();
     const stash = new StashPanel();
-    const inventory = new InventoryPanel();
+    const equipment = new EquipmentPanel();
     const crafting = new CraftingPanel();
     const maps = new MapsPanel();
     const stats = new StatsPanel();
 
-    this.panels = [guild, stash, inventory, crafting, maps, stats];
+    this.panels = [guild, stash, equipment, crafting, maps, stats];
 
     layout.appendChild(guild.element);
     layout.appendChild(stash.element);
-    layout.appendChild(inventory.element);
+    layout.appendChild(equipment.element);
     layout.appendChild(crafting.element);
     layout.appendChild(maps.element);
     layout.appendChild(stats.element);

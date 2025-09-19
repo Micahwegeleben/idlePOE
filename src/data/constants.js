@@ -31,10 +31,12 @@ export const HERO_CLASSES = [
   },
 ];
 
+export const STASH_COLUMNS = 12;
+export const STASH_ROWS = 12;
+
 export const DEFAULT_STASH_TABS = Array.from({ length: 10 }, (_, index) => ({
   id: `tab-${index + 1}`,
   name: `Tab ${index + 1}`,
-  items: [],
 }));
 
 export const DEFAULT_CURRENCY = [

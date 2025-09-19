@@ -4,9 +4,10 @@ A browser-based idle management prototype inspired by Path of Exile's economy an
 
 ## Features
 
-- **Guild Roster:** Recruit up to five heroes across classic Path of Exile archetypes. The active hero drives inventory, map assignments, and stat panels.
-- **Inventory Panel:** View the currently selected hero's 12x5 grid inventory layout styled after ARPG backpack systems.
-- **Shared Stash:** Manage ten customizable tabs. Double-click a tab header to rename it and track loot packages generated from completed maps.
+- **Guild Roster:** Recruit up to five heroes across classic Path of Exile archetypes. The active hero drives equipment, map assignments, and stat panels.
+- **Equipment Loadouts:** Gear each hero across fourteen dedicated slots (helm, armour, jewellery, weapons, and accessories) with drag-and-drop support from the stash.
+- **Shared Stash:** Organize loot across ten customizable tabs using a grid-based storage layout that mirrors ARPG stash pages.
+- **Dynamic Loot:** Complete maps to earn randomised common, magic, and rare items with procedurally rolled affixes alongside currency rewards.
 - **Crafting Materials:** Track core currency items with space reserved for future crafting interactions.
 - **Map Operations:** Assign the active hero to thematic maps, watch progress tick in real time, and claim rewards to earn hero experience, currency, and stash loot.
 - **Stat Overview:** Inspect offensive and defensive derived stats for the selected hero, including level progression.
@@ -36,8 +37,7 @@ src/
 
 ## Next Steps
 
-- Implement drag-and-drop interactions between inventory and stash.
-- Expand loot generation with item rarity, affixes, and crafting hooks.
+- Expand loot pools with more base types, affixes, and implicit modifiers.
 - Introduce background job scheduling so multiple heroes can run maps simultaneously.
 - Persist game state using local storage.
 
