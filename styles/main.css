@@ -59,11 +59,12 @@ button:disabled {
 .layout {
   display: grid;
   gap: 16px;
-  grid-template-columns: 300px minmax(0, 1fr) 320px;
-  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: minmax(220px, 260px) minmax(0, 2fr) minmax(280px, 1.1fr);
+  grid-template-rows: minmax(220px, 1fr) minmax(320px, 1.4fr) minmax(220px, 1fr);
   grid-template-areas:
-    "guild equipment stats"
-    "stash crafting maps";
+    "guild stash stats"
+    "equipment stash maps"
+    "crafting stash maps";
   flex: 1;
   min-height: 0;
 }
@@ -772,11 +773,12 @@ button:disabled {
 
 @media (max-width: 1200px) {
   .layout {
-    grid-template-columns: 260px minmax(0, 1fr);
-    grid-template-rows: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
+    grid-template-rows: minmax(200px, 1.1fr) minmax(260px, 1.3fr) minmax(200px, 1fr) minmax(200px, 1fr);
     grid-template-areas:
-      "guild equipment"
-      "stash crafting"
+      "guild stash"
+      "equipment stash"
+      "crafting maps"
       "stats maps";
   }
 }
