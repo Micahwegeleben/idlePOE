@@ -8,7 +8,10 @@
 body {
   margin: 0;
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   background: radial-gradient(circle at top, rgba(255, 179, 71, 0.1), rgba(15, 15, 16, 1));
+  overflow: hidden;
 }
 
 button {
@@ -34,10 +37,13 @@ button:disabled {
 #app {
   display: flex;
   flex-direction: column;
-  padding: 24px;
-  max-width: 1400px;
-  margin: 0 auto;
+  flex: 1;
+  min-height: 0;
+  padding: 24px 32px;
   gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .app-title {
@@ -47,17 +53,19 @@ button:disabled {
   letter-spacing: 0.1em;
   color: #f5d48f;
   text-shadow: 0 0 12px rgba(245, 212, 143, 0.6);
+  flex-shrink: 0;
 }
 
 .layout {
   display: grid;
   gap: 16px;
-  grid-template-columns: 340px 1fr 320px;
-  grid-template-rows: auto auto auto;
+  grid-template-columns: 300px minmax(0, 1fr) 320px;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
   grid-template-areas:
-    "guild stash stats"
-    "equipment maps stats"
-    ". crafting stats";
+    "guild equipment stats"
+    "stash crafting maps";
+  flex: 1;
+  min-height: 0;
 }
 
 .panel[data-area="guild"] {
@@ -93,6 +101,8 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .panel h2 {
@@ -101,17 +111,25 @@ button:disabled {
   color: #f5d48f;
   border-bottom: 1px solid rgba(204, 172, 101, 0.3);
   padding-bottom: 8px;
+  flex-shrink: 0;
 }
 
 .grid-list {
   display: grid;
   gap: 8px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 
 .stash-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  flex-shrink: 0;
+  overflow-x: auto;
+  padding-bottom: 4px;
 }
 
 .stash-items {
@@ -120,6 +138,10 @@ button:disabled {
   flex-direction: column;
   gap: 12px;
   align-items: stretch;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .stash-tab {
@@ -248,6 +270,10 @@ button:disabled {
   flex-direction: column;
   gap: 12px;
   align-items: center;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 4px;
 }
 
 .equipment-grid {
@@ -471,6 +497,10 @@ button:disabled {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .crafting-materials,
@@ -623,6 +653,10 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .map-card {
@@ -658,6 +692,10 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 4px;
 }
 
 .stats-card {
@@ -734,22 +772,28 @@ button:disabled {
 
 @media (max-width: 1200px) {
   .layout {
-    grid-template-columns: 320px 1fr;
+    grid-template-columns: 260px minmax(0, 1fr);
+    grid-template-rows: repeat(3, minmax(0, 1fr));
     grid-template-areas:
-      "guild stash"
-      "equipment maps"
-      "crafting maps"
-      "stats stats";
+      "guild equipment"
+      "stash crafting"
+      "stats maps";
   }
 }
 
 @media (max-width: 900px) {
+  body {
+    overflow: auto;
+  }
+
   #app {
     padding: 16px;
+    overflow: visible;
   }
 
   .layout {
     display: flex;
     flex-direction: column;
+    gap: 12px;
   }
 }
