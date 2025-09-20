@@ -247,12 +247,57 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  align-items: center;
 }
 
 .equipment-grid {
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 12px;
+  width: min(100%, 640px);
+  margin: 0 auto;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, rgba(26, 20, 15, 0.9), rgba(40, 32, 24, 0.7));
+  border-radius: 14px;
+  border: 1px solid rgba(204, 172, 101, 0.25);
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.45);
+  grid-template-columns: repeat(5, minmax(100px, 1fr));
+  grid-template-rows: repeat(4, minmax(120px, auto));
+  grid-template-areas:
+    ". helmet amulet ring ."
+    "mainHand chest chest offHand quiver"
+    "mainHand gloves belt boots quiver"
+    ". gloves belt boots .";
+}
+
+.equipment-grid::before {
+  content: "";
+  position: absolute;
+  inset: 12% 30%;
+  border-radius: 40% / 45%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(245, 212, 143, 0.12) 0%,
+    rgba(245, 212, 143, 0.05) 35%,
+    rgba(0, 0, 0, 0) 70%
+  );
+  pointer-events: none;
+  filter: blur(0.5px);
+}
+
+@media (max-width: 720px) {
+  .equipment-grid {
+    grid-template-columns: repeat(2, minmax(140px, 1fr));
+    grid-template-rows: auto;
+    grid-template-areas:
+      "helmet helmet"
+      "amulet ring"
+      "mainHand offHand"
+      "chest chest"
+      "gloves boots"
+      "belt belt"
+      "quiver quiver";
+  }
 }
 
 .equipment-slot {
@@ -264,6 +309,9 @@ button:disabled {
   flex-direction: column;
   gap: 6px;
   min-height: 120px;
+  height: 100%;
+  align-items: center;
+  text-align: center;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
