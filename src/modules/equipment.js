@@ -8,6 +8,19 @@ const SLOT_LABELS = EQUIPMENT_SLOTS.reduce((map, slot) => {
   return map;
 }, {});
 
+const SLOT_AREAS = {
+  helmet: "helmet",
+  chest: "chest",
+  gloves: "gloves",
+  boots: "boots",
+  belt: "belt",
+  amulet: "amulet",
+  ring: "ring",
+  mainHand: "mainHand",
+  offHand: "offHand",
+  quiver: "quiver",
+};
+
 export class EquipmentPanel {
   constructor() {
     this.element = createElement("div", { className: "panel", attrs: { "data-area": "equipment" } });
@@ -58,6 +71,11 @@ export class EquipmentPanel {
         className: `equipment-slot${equippedItem ? " filled" : ""}`,
         attrs: { "data-slot": slot.id },
       });
+
+      const gridArea = SLOT_AREAS[slot.id];
+      if (gridArea) {
+        slotElement.style.gridArea = gridArea;
+      }
 
       const label = createElement("div", {
         className: "slot-label",

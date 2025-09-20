@@ -526,6 +526,13 @@ export const actions = {
       alert("Select a hero before starting a map.");
       return;
     }
+    const runningMap = state.maps.find(
+      (entry) => entry.status === "running" && entry.assignedHeroId === heroId,
+    );
+    if (runningMap) {
+      alert(`${hero.name} is already running another map.`);
+      return;
+    }
     state.maps = state.maps.map((map) => {
       if (map.id !== mapId) return map;
       if (map.status === "running") return map;

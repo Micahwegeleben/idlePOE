@@ -32,6 +32,14 @@ const renderControls = (map, state) => {
     if (!state.activeHeroId) {
       runButton.disabled = true;
       runButton.title = "Select a hero from the guild to start this map.";
+    } else {
+      const heroBusy = state.maps.some(
+        (entry) => entry.status === "running" && entry.assignedHeroId === state.activeHeroId,
+      );
+      if (heroBusy) {
+        runButton.disabled = true;
+        runButton.title = "Selected hero is already running another map.";
+      }
     }
     runButton.addEventListener("click", () => actions.startMap(map.id, state.activeHeroId));
     controls.appendChild(runButton);
